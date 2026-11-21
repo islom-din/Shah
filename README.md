@@ -7,7 +7,7 @@
 
 | Намаз | Кибла | Настройки |
 | :---: | :---: | :---: |
-| <img src="docs/screenshots/prayers.png" width="240" alt="Расписание намазов и обратный отсчёт"> | <img src="docs/screenshots/qibla.png" width="240" alt="Компас с направлением на Мекку"> | <img src="docs/screenshots/settings.png" width="240" alt="Настройки напоминаний о намазе"> |
+| <img src="docs/screenshots/prayers-light.png" width="240" alt="Расписание намазов и обратный отсчёт в светлой теме"> | <img src="docs/screenshots/qibla-light.png" width="240" alt="Компас с направлением на Мекку в светлой теме"> | <img src="docs/screenshots/settings-light.png" width="240" alt="Настройки напоминаний в светлой теме"> |
 
 ## Возможности
 
@@ -26,7 +26,3 @@
 ```
 
 Готовый APK появится в `app/build/outputs/apk/debug/app-debug.apk`. Запустить модульные тесты можно командой `./gradlew :app:testDebugUnitTest`.
-
-## Источник расписания
-
-Shah загружает расписание для Душанбе из HTML-страницы taqvim.tj. Время отображается по часовому поясу Душанбе. [Расписание на taqvim.tj](https://taqvim.tj/main_namaz_tj.php)
