@@ -1,28 +1,28 @@
 <h1 align="center">Shah</h1>
 
-<p align="center"><strong>Расписание намазов Душанбе и компас киблы для Android</strong></p>
+<p align="center"><strong>Dushanbe prayer times and a Qibla compass for Android</strong></p>
 <p align="center">Kotlin · Jetpack Compose · Android 10+</p>
 
-## Скриншоты
+## Screenshots
 
-| Намаз | Кибла | Настройки |
+| Prayer Times | Qibla | Settings |
 | :---: | :---: | :---: |
-| <img src="docs/screenshots/prayers-light.png" width="240" alt="Расписание намазов и обратный отсчёт в светлой теме"> | <img src="docs/screenshots/qibla-light.png" width="240" alt="Компас с направлением на Мекку в светлой теме"> | <img src="docs/screenshots/settings-light.png" width="240" alt="Настройки напоминаний в светлой теме"> |
+| <img src="docs/screenshots/prayers-light.png" width="240" alt="Prayer schedule and countdown in light mode"> | <img src="docs/screenshots/qibla-light.png" width="240" alt="Compass pointing toward Mecca in light mode"> | <img src="docs/screenshots/settings-light.png" width="240" alt="Prayer reminder settings in light mode"> |
 
-## Возможности
+## Features
 
-- **Намаз.** Расписание коллективных молитв в Центральной мечети Душанбе и обратный отсчёт до начала или конца времени намаза. Приложение сохраняет загруженное расписание на текущий день.
-- **Кибла.** Компас показывает направление на Мекку по геопозиции и датчикам телефона.
-- **Напоминания.** Можно включить уведомление заранее, в момент намаза или в обоих случаях.
+- **Prayer times.** See the congregational prayer schedule for the Central Mosque of Dushanbe and a countdown to the start or end of the prayer window. The app caches the current day's schedule.
+- **Qibla.** Find the direction to Mecca using your location and your phone's sensors.
+- **Reminders.** Get a notification before prayer, at the scheduled prayer time, or both.
 
-## Сборка и запуск
+## Build and Run
 
-Открой папку проекта в Android Studio, дождись синхронизации Gradle и запусти конфигурацию `app` на устройстве с Android 10 или новее. Для проверки компаса используй телефон с датчиками ориентации.
+Open the project in Android Studio, wait for Gradle to sync, and run the `app` configuration on a device with Android 10 or later. To test the compass, use a phone with orientation sensors.
 
-Для сборки из терминала нужны JDK 21 и Android SDK 36.1.
+To build from the terminal, use JDK 21 and Android SDK 36.1.
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-Готовый APK появится в `app/build/outputs/apk/debug/app-debug.apk`. Запустить модульные тесты можно командой `./gradlew :app:testDebugUnitTest`.
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Run the unit tests with `./gradlew :app:testDebugUnitTest`.
