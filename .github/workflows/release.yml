@@ -28,7 +28,10 @@ jobs:
           SHAH_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ./gradlew :app:assembleRelease -PversionName="$VERSION" -PversionCode="$GITHUB_RUN_NUMBER"
+          # versionCode is derived from the tag (1.2.3 -> 10203) so it stays monotonic in any repository.
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          CODE=$(( MAJOR * 10000 + ${MINOR:-0} * 100 + ${PATCH:-0} ))
+          ./gradlew :app:assembleRelease -PversionName="$VERSION" -PversionCode="$CODE"
           cp app/build/outputs/apk/release/app-release.apk "Shah-$VERSION.apk"
       - name: Publish release
         env:

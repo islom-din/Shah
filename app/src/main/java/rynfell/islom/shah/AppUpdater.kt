@@ -15,7 +15,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /** GitHub repository whose releases carry the signed APK. */
-internal const val updateRepository = "UmarTuranov/Shah"
+internal const val updateRepository = "islom-din/Shah"
 
 internal data class AppUpdate(val version: String, val apkUrl: String, val sizeBytes: Long)
 
