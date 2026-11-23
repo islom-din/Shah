@@ -9,6 +9,16 @@
     <string name="settings_fajr_alarm_hint">Время берётся с taqvim.tj. Будильник прозвонит заранее.</string>
     <string name="settings_alarm_at_time">В момент</string>
     <string name="settings_test_alarm">Проверить будильник</string>
+    <string name="update_title">Обновление приложения</string>
+    <string name="update_version">Версия %1$s</string>
+    <string name="update_up_to_date">Версия %1$s — установлена последняя</string>
+    <string name="update_available">Доступна версия %1$s</string>
+    <string name="update_checking">Проверяем обновления…</string>
+    <string name="update_downloading">Скачиваем… %1$d%%</string>
+    <string name="update_installing">Подтвердите установку в системном окне</string>
+    <string name="update_failed">Не удалось проверить обновление. Проверьте подключение к интернету.</string>
+    <string name="update_check">Проверить обновления</string>
+    <string name="update_install">Обновить</string>
     <string name="alarm_channel">Будильник Бомдод</string>
     <string name="alarm_title">Время вставать на Бомдод</string>
     <string name="alarm_text">Скоро начнётся утренний намаз</string>

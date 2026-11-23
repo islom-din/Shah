@@ -15,14 +15,27 @@ android {
         applicationId = "rynfell.islom.shah"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // CI overrides these from the release tag: -PversionName=1.1 -PversionCode=2
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val path = System.getenv("SHAH_KEYSTORE_PATH")
+            if (path != null) {
+                storeFile = file(path)
+                storePassword = System.getenv("SHAH_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SHAH_KEY_ALIAS")
+                keyPassword = System.getenv("SHAH_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("SHAH_KEYSTORE_PATH") != null) signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = false
             }

@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
     private var notificationsAllowed by mutableStateOf(false)
     private var exactAlarmsAllowed by mutableStateOf(false)
     private var soundPreview: MediaPlayer? = null
+    private var updateState by mutableStateOf<UpdateState>(UpdateState.Idle)
     private var resumed = false
     private lateinit var soundPool: SoundPool
     private var alignmentSoundId = 0
@@ -112,6 +113,7 @@ class MainActivity : ComponentActivity() {
         notificationSettings = prayerNotifications.settings()
         enableEdgeToEdge()
         loadAlignmentSound()
+        checkForUpdate(manual = false)
         setContent {
             ShahTheme {
                 ShahNavigation(selectedTab, ::selectTab) {
@@ -135,6 +137,10 @@ class MainActivity : ComponentActivity() {
                             onAllowExactAlarms = ::allowExactAlarms,
                             onPlaySound = ::playNotificationSound,
                             onTestAlarm = { AlarmService.start(this@MainActivity) },
+                            updateState = updateState,
+                            currentVersion = currentVersion,
+                            onCheckUpdate = { checkForUpdate(manual = true) },
+                            onInstallUpdate = ::installUpdate,
                         )
                     }
                 }
@@ -145,6 +151,44 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("selected_tab", selectedTab.ordinal)
         super.onSaveInstanceState(outState)
+    }
+
+    private val currentVersion: String
+        get() = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+
+    private fun checkForUpdate(manual: Boolean) {
+        val now = System.currentTimeMillis()
+        if (!manual && now - permissionPreferences.getLong("update_checked_at", 0L) < 24 * 60 * 60 * 1000L) return
+        if (updateState is UpdateState.Checking || updateState is UpdateState.Downloading) return
+        updateState = UpdateState.Checking
+        lifecycleScope.launch {
+            updateState = try {
+                val update = fetchLatestUpdate(currentVersion)
+                permissionPreferences.edit { putLong("update_checked_at", now) }
+                if (update != null) UpdateState.Available(update) else UpdateState.UpToDate
+            } catch (_: IOException) {
+                if (manual) UpdateState.Failed else UpdateState.Idle
+            }
+        }
+    }
+
+    private fun installUpdate() {
+        val update = (updateState as? UpdateState.Available)?.update ?: return
+        if (!packageManager.canRequestPackageInstalls()) {
+            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+            return
+        }
+        updateState = UpdateState.Downloading(update, 0f)
+        lifecycleScope.launch {
+            updateState = try {
+                downloadAndInstall(applicationContext, update) { progress ->
+                    updateState = UpdateState.Downloading(update, progress)
+                }
+                UpdateState.Installing
+            } catch (_: IOException) {
+                UpdateState.Failed
+            }
+        }
     }
 
     private fun selectTab(tab: ShahTab) {
