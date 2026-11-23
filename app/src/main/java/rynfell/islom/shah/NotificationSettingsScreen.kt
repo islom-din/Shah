@@ -39,6 +39,7 @@ internal fun NotificationSettingsScreen(
     onAllowNotifications: () -> Unit,
     onAllowExactAlarms: () -> Unit,
     onPlaySound: () -> Unit,
+    onTestAlarm: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
@@ -107,11 +108,55 @@ internal fun NotificationSettingsScreen(
                     }
                 }
             }
-            if (settings.enabled && !notificationsAllowed) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = colors.surface,
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                Column(Modifier.padding(bottom = 16.dp)) {
+                    NotificationSwitch(
+                        title = stringResource(R.string.settings_fajr_alarm),
+                        checked = settings.fajrAlarmEnabled,
+                        onChecked = { onChange(settings.copy(fajrAlarmEnabled = it)) },
+                    )
+                    Text(
+                        stringResource(R.string.settings_fajr_alarm_hint),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        style = type.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = onTestAlarm,
+                        modifier = Modifier.padding(start = 8.dp),
+                    ) {
+                        Text(stringResource(R.string.settings_test_alarm))
+                    }
+                    if (settings.fajrAlarmEnabled) {
+                        FlowRow(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            fajrAlarmOptions.forEach { minutes ->
+                                FilterChip(
+                                    selected = settings.fajrAlarmLeadMinutes == minutes,
+                                    onClick = { onChange(settings.copy(fajrAlarmLeadMinutes = minutes)) },
+                                    label = {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_alarm_at_time)
+                                            else stringResource(R.string.settings_lead_minutes, minutes),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (settings.notificationsEnabled && !notificationsAllowed) {
                 OutlinedButton(onClick = onAllowNotifications) {
                     Text(stringResource(R.string.settings_allow_notifications))
                 }
-            } else if (settings.enabled && !exactAlarmsAllowed) {
+            } else if (settings.notificationsEnabled && !exactAlarmsAllowed) {
                 Text(
                     stringResource(R.string.settings_exact_alarm_explanation),
                     style = type.bodyMedium,

@@ -5,6 +5,15 @@
     <string name="settings_prayer_notifications">Уведомления по расписанию мечети</string>
     <string name="settings_prayer_reminder">Напоминать заранее</string>
     <string name="settings_at_prayer">Уведомлять в момент намаза</string>
+    <string name="settings_fajr_alarm">Будильник на Бомдод</string>
+    <string name="settings_fajr_alarm_hint">Время берётся с taqvim.tj. Будильник прозвонит заранее.</string>
+    <string name="settings_alarm_at_time">В момент</string>
+    <string name="settings_test_alarm">Проверить будильник</string>
+    <string name="alarm_channel">Будильник Бомдод</string>
+    <string name="alarm_title">Время вставать на Бомдод</string>
+    <string name="alarm_text">Скоро начнётся утренний намаз</string>
+    <string name="alarm_stop">Выключить</string>
+    <string name="alarm_snooze">Отложить на %1$d мин</string>
     <string name="settings_lead_minutes">За %1$d мин</string>
     <string name="settings_preview_sound">Послушать звук</string>
     <string name="settings_allow_notifications">Разрешить уведомления</string>

@@ -134,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             onAllowNotifications = ::allowNotifications,
                             onAllowExactAlarms = ::allowExactAlarms,
                             onPlaySound = ::playNotificationSound,
+                            onTestAlarm = { AlarmService.start(this@MainActivity) },
                         )
                     }
                 }
