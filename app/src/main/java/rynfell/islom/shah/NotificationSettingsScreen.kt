@@ -15,7 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -39,6 +41,11 @@ internal fun NotificationSettingsScreen(
     onAllowNotifications: () -> Unit,
     onAllowExactAlarms: () -> Unit,
     onPlaySound: () -> Unit,
+    onTestAlarm: () -> Unit,
+    updateState: UpdateState,
+    currentVersion: String,
+    onCheckUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
@@ -107,11 +114,56 @@ internal fun NotificationSettingsScreen(
                     }
                 }
             }
-            if (settings.enabled && !notificationsAllowed) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = colors.surface,
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                Column(Modifier.padding(bottom = 16.dp)) {
+                    NotificationSwitch(
+                        title = stringResource(R.string.settings_fajr_alarm),
+                        checked = settings.fajrAlarmEnabled,
+                        onChecked = { onChange(settings.copy(fajrAlarmEnabled = it)) },
+                    )
+                    Text(
+                        stringResource(R.string.settings_fajr_alarm_hint),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        style = type.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = onTestAlarm,
+                        modifier = Modifier.padding(start = 8.dp),
+                    ) {
+                        Text(stringResource(R.string.settings_test_alarm))
+                    }
+                    if (settings.fajrAlarmEnabled) {
+                        FlowRow(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            fajrAlarmOptions.forEach { minutes ->
+                                FilterChip(
+                                    selected = settings.fajrAlarmLeadMinutes == minutes,
+                                    onClick = { onChange(settings.copy(fajrAlarmLeadMinutes = minutes)) },
+                                    label = {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_alarm_at_time)
+                                            else stringResource(R.string.settings_lead_minutes, minutes),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            UpdateCard(updateState, currentVersion, onCheckUpdate, onInstallUpdate)
+            if (settings.notificationsEnabled && !notificationsAllowed) {
                 OutlinedButton(onClick = onAllowNotifications) {
                     Text(stringResource(R.string.settings_allow_notifications))
                 }
-            } else if (settings.enabled && !exactAlarmsAllowed) {
+            } else if (settings.notificationsEnabled && !exactAlarmsAllowed) {
                 Text(
                     stringResource(R.string.settings_exact_alarm_explanation),
                     style = type.bodyMedium,
@@ -136,5 +188,38 @@ private fun NotificationSwitch(title: String, checked: Boolean, onChecked: (Bool
     ) {
         Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun UpdateCard(
+    state: UpdateState,
+    currentVersion: String,
+    onCheck: () -> Unit,
+    onInstall: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(Modifier.fillMaxWidth(), color = colors.surface, shape = RoundedCornerShape(24.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.update_title), style = MaterialTheme.typography.titleMedium)
+            val status = when (state) {
+                is UpdateState.Available -> stringResource(R.string.update_available, state.update.version)
+                is UpdateState.Downloading -> stringResource(R.string.update_downloading, (state.progress * 100).toInt())
+                UpdateState.Checking -> stringResource(R.string.update_checking)
+                UpdateState.Installing -> stringResource(R.string.update_installing)
+                UpdateState.UpToDate -> stringResource(R.string.update_up_to_date, currentVersion)
+                UpdateState.Failed -> stringResource(R.string.update_failed)
+                UpdateState.Idle -> stringResource(R.string.update_version, currentVersion)
+            }
+            Text(status, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            if (state is UpdateState.Downloading) {
+                LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth())
+            }
+            when (state) {
+                is UpdateState.Available -> Button(onClick = onInstall) { Text(stringResource(R.string.update_install)) }
+                is UpdateState.Downloading, UpdateState.Checking, UpdateState.Installing -> Unit
+                else -> OutlinedButton(onClick = onCheck) { Text(stringResource(R.string.update_check)) }
+            }
+        }
     }
 }

@@ -26,3 +26,15 @@ To build from the terminal, use JDK 21 and Android SDK 36.1.
 ```
 
 The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Run the unit tests with `./gradlew :app:testDebugUnitTest`.
+
+## Releases and in-app updates
+
+The app checks the latest GitHub Release of `islom-din/Shah` and offers to install a newer APK (Settings → App update).
+
+To publish a release, push a version tag:
+
+```bash
+git tag v1.2 && git push origin v1.2
+```
+
+The `Release` workflow builds a signed APK and attaches it to the release. It needs these repository secrets (Settings → Secrets and variables → Actions): `KEYSTORE_BASE64` (`base64 -i shah-release.jks`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. Every release must be signed with the same key, otherwise Android refuses to update an installed copy.

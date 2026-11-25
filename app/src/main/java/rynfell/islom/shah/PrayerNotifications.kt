@@ -32,12 +32,17 @@ import kotlinx.coroutines.launch
 
 internal val reminderOptions = listOf(5, 10, 15, 20, 30, 45, 60)
 
+internal val fajrAlarmOptions = listOf(0, 5, 10, 15, 20, 30, 45, 60)
+
 internal data class PrayerNotificationSettings(
     val reminderEnabled: Boolean = false,
     val leadMinutes: Int = 15,
     val atPrayerEnabled: Boolean = false,
+    val fajrAlarmEnabled: Boolean = false,
+    val fajrAlarmLeadMinutes: Int = 15,
 ) {
-    val enabled get() = reminderEnabled || atPrayerEnabled
+    val notificationsEnabled get() = reminderEnabled || atPrayerEnabled
+    val enabled get() = notificationsEnabled || fajrAlarmEnabled
 }
 
 internal enum class PrayerAlertKind { Reminder, Start }
@@ -65,6 +70,13 @@ internal fun PrayerSchedule.alertFor(
     }
 }
 
+/** The moment the Fajr alarm should ring: the mosque's Fajr time from taqvim.tj minus the chosen lead. */
+internal fun PrayerSchedule.fajrAlarmTime(settings: PrayerNotificationSettings): Instant? =
+    if (settings.fajrAlarmEnabled) {
+        date.atTime(fajr).atZone(dushanbeZone)
+            .minusMinutes(settings.fajrAlarmLeadMinutes.toLong()).toInstant()
+    } else null
+
 internal class PrayerNotifications(private val context: Context) {
     private val preferences = context.getSharedPreferences("prayer_notifications", Context.MODE_PRIVATE)
     private val alarms = context.getSystemService(AlarmManager::class.java)
@@ -78,6 +90,8 @@ internal class PrayerNotifications(private val context: Context) {
         reminderEnabled = preferences.getBoolean("reminder", false),
         leadMinutes = preferences.getInt("lead_minutes", 15).takeIf { it in reminderOptions } ?: 15,
         atPrayerEnabled = preferences.getBoolean("at_prayer", false),
+        fajrAlarmEnabled = preferences.getBoolean("fajr_alarm", false),
+        fajrAlarmLeadMinutes = preferences.getInt("fajr_alarm_lead", 15).takeIf { it in fajrAlarmOptions } ?: 15,
     )
 
     fun updateSettings(settings: PrayerNotificationSettings) {
@@ -85,6 +99,8 @@ internal class PrayerNotifications(private val context: Context) {
             putBoolean("reminder", settings.reminderEnabled)
             putInt("lead_minutes", settings.leadMinutes)
             putBoolean("at_prayer", settings.atPrayerEnabled)
+            putBoolean("fajr_alarm", settings.fajrAlarmEnabled)
+            putInt("fajr_alarm_lead", settings.fajrAlarmLeadMinutes)
         }
         sync()
     }
@@ -108,11 +124,14 @@ internal class PrayerNotifications(private val context: Context) {
     }
 
     fun sync() {
-        val settings = settings()
-        val enabled = settings.enabled && notificationsAllowed
+        val stored = settings()
+        // Notifications need the notification permission; the alarm does not depend on it.
+        val settings = if (notificationsAllowed) stored else stored.copy(reminderEnabled = false, atPrayerEnabled = false)
+        val enabled = settings.enabled
         val now = ZonedDateTime.now(dushanbeZone)
         val schedule = if (enabled) cachedSchedule(now.toLocalDate()) else null
-        val exact = enabled && exactAlarmsAllowed
+        val exact = settings.notificationsEnabled && exactAlarmsAllowed
+        syncFajrAlarm(schedule?.fajrAlarmTime(settings), now.toInstant())
         for (prayer in Prayer.entries) {
             for (kind in PrayerAlertKind.entries) {
                 val alert = schedule?.alertFor(prayer, kind, settings)
@@ -147,6 +166,43 @@ internal class PrayerNotifications(private val context: Context) {
             cancel(refreshKey)
             jobs.cancel(refreshJobId)
         }
+    }
+
+    private fun syncFajrAlarm(trigger: Instant?, now: Instant) {
+        if (trigger == null) {
+            cancel(fajrAlarmKey)
+        } else if (trigger > now) {
+            setClockAlarm(trigger.toEpochMilli(), operation(fajrAlarmKey, trigger.toEpochMilli()))
+        }
+    }
+
+    private fun setClockAlarm(atMillis: Long, operation: PendingIntent) {
+        val openApp = PendingIntent.getActivity(
+            context, 0,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        // An alarm-clock alarm fires exactly even in Doze and needs no extra permission.
+        alarms.setAlarmClock(AlarmManager.AlarmClockInfo(atMillis, openApp), operation)
+    }
+
+    fun onFajrAlarm(triggerMillis: Long) {
+        val now = ZonedDateTime.now(dushanbeZone)
+        val settings = settings()
+        val trigger = cachedSchedule(now.toLocalDate())?.fajrAlarmTime(settings) ?: return
+        if (trigger.toEpochMilli() != triggerMillis || now.toInstant() < trigger) return
+        // Ignore an alarm delivered long after it was due (e.g. the phone was off).
+        if (now.toInstant() > trigger.plusSeconds(30 * 60)) return
+        AlarmService.start(context)
+    }
+
+    fun snoozeFajrAlarm(minutes: Int = snoozeMinutes) {
+        val at = System.currentTimeMillis() + minutes * 60_000L
+        setClockAlarm(at, operation(snoozeKey, at))
+    }
+
+    fun onSnoozeAlarm() {
+        if (settings().fajrAlarmEnabled) AlarmService.start(context)
     }
 
     fun onAlert(key: Int, triggerMillis: Long) {
@@ -240,6 +296,9 @@ internal class PrayerNotifications(private val context: Context) {
         private const val prayerChannel = "prayer_starts"
         private const val refreshJobId = 71
         internal const val refreshKey = 100
+        internal const val fajrAlarmKey = 200
+        internal const val snoozeKey = 201
+        internal const val snoozeMinutes = 10
         private val alertCount = Prayer.entries.size * PrayerAlertKind.entries.size
         private val alertTimeFormat = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
     }
@@ -251,6 +310,10 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         val key = intent.getIntExtra("key", -1)
         if (intent.action != null || key == PrayerNotifications.refreshKey) {
             notifications.sync()
+        } else if (key == PrayerNotifications.fajrAlarmKey) {
+            notifications.onFajrAlarm(intent.getLongExtra("trigger", 0L))
+        } else if (key == PrayerNotifications.snoozeKey) {
+            notifications.onSnoozeAlarm()
         } else {
             notifications.onAlert(key, intent.getLongExtra("trigger", 0L))
         }
@@ -262,7 +325,8 @@ class PrayerScheduleRefreshJob : JobService() {
 
     override fun onStartJob(params: JobParameters): Boolean {
         val notifications = PrayerNotifications(this)
-        if (!notifications.settings().enabled || !notifications.notificationsAllowed) return false
+        val settings = notifications.settings()
+        if (!settings.fajrAlarmEnabled && !(settings.notificationsEnabled && notifications.notificationsAllowed)) return false
         work = CoroutineScope(Dispatchers.Main).launch {
             val today = ZonedDateTime.now(dushanbeZone).toLocalDate()
             try {
